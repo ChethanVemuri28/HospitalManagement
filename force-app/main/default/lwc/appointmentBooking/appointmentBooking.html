@@ -1,0 +1,52 @@
+<template>
+    <lightning-card title="Book Appointment" icon-name="standard:event">
+        <div class="slds-p-around_medium">
+            <lightning-record-picker
+                label="Doctor"
+                object-api-name="Doctor__c"
+                placeholder="Search doctors"
+                onchange={handleDoctorChange}>
+            </lightning-record-picker>
+
+            <lightning-record-picker
+                label="Patient"
+                object-api-name="Patient__c"
+                placeholder="Search patients"
+                onchange={handlePatientChange}>
+            </lightning-record-picker>
+
+            <lightning-input
+                type="datetime"
+                label="Appointment Date"
+                value={appointmentDate}
+                onchange={handleDateChange}
+                required>
+            </lightning-input>
+
+            <lightning-textarea
+                label="Notes"
+                value={notes}
+                onchange={handleNotesChange}>
+            </lightning-textarea>
+
+            <template if:true={conflictMessage}>
+                <div class="slds-m-top_small slds-text-color_error">{conflictMessage}</div>
+            </template>
+
+            <div class="slds-m-top_medium">
+                <lightning-button
+                    label="Check availability"
+                    onclick={handleCheck}
+                    disabled={isBusy}>
+                </lightning-button>
+                <lightning-button
+                    variant="brand"
+                    label="Save appointment"
+                    onclick={handleSave}
+                    disabled={cannotSubmit}
+                    class="slds-m-left_small">
+                </lightning-button>
+            </div>
+        </div>
+    </lightning-card>
+</template>
