@@ -73,4 +73,13 @@ public with sharing class AppointmentController {
             appointmentId
         );
     }
+
+    @AuraEnabled
+    public static void completeAppointment(
+        Id appointmentId
+    ) {
+        AppointmentService.completeAppointment(
+            appointmentId
+        );  
+    }
 }

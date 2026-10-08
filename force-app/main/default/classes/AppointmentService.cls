@@ -55,4 +55,20 @@ public with sharing class AppointmentService {
 
         update appointment;
     }
+
+    public static void completeAppointment(
+        Id appointmentId
+    ) {
+
+        Appointment__c appointment = [
+            SELECT Id, Status__c
+            FROM Appointment__c
+            WHERE Id = :appointmentId
+            LIMIT 1
+        ];
+
+        appointment.Status__c = 'Completed';
+
+        update appointment;
+    }
 }

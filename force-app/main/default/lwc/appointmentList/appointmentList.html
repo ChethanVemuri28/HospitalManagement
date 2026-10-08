@@ -91,16 +91,22 @@
 
                                         <td>
 
-                                            <template
-                                                if:false={appointment.isCancelled}>
+                                            <template lwc:if={appointment.canTakeAction}>
+                                                <div class="slds-m-left_auto">
+                                                    <lightning-button
+                                                        label="Cancel"
+                                                        variant="destructive-text"
+                                                        data-id={appointment.Id}
+                                                        onclick={handleCancel}>
+                                                    </lightning-button>
 
-                                                <lightning-button
-                                                    label="Cancel"
-                                                    variant="destructive-text"
-                                                    data-id={appointment.Id}
-                                                    onclick={handleCancel}>
-                                                </lightning-button>
-
+                                                    <lightning-button
+                                                        label="Completed"
+                                                        variant="neutral"
+                                                        data-id={appointment.Id}
+                                                        onclick={handleComplete}>
+                                                    </lightning-button>
+                                                </div>
                                             </template>
 
                                         </td>
