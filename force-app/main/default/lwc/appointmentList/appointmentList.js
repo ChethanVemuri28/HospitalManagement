@@ -6,6 +6,9 @@ import getAppointments
 import cancelAppointment
     from '@salesforce/apex/AppointmentController.cancelAppointment';
 
+import completeAppointment
+    from '@salesforce/apex/AppointmentController.completeAppointment';
+
 import { ShowToastEvent } from 'lightning/platformShowToastEvent';
 
 import { refreshApex } from '@salesforce/apex';
@@ -35,8 +38,8 @@ export default class AppointmentList extends LightningElement {
             this.appointments = data.map(
                 appointment => ({
                     ...appointment,
-                    isCancelled:
-                        appointment.Status__c === 'Cancelled'
+                    canTakeAction:
+                        appointment.Status__c !== 'Cancelled' && appointment.Status__c !== 'Completed' 
             })
             );
             this.applyFilters();
@@ -140,6 +143,47 @@ export default class AppointmentList extends LightningElement {
             this.showToast(
                 'Success',
                 'Appointment cancelled.',
+                'success'
+            );
+
+            await refreshApex(
+                this.wiredAppointmentResult
+            );
+
+        } catch (error) {
+
+            this.showToast(
+                'Error',
+                this.getErrorMessage(error),
+                'error'
+            );
+
+        } finally {
+
+            this.isLoading = false;
+        }
+    }
+
+    async handleComplete(event) {
+
+        const appointmentId =
+            event.currentTarget.dataset.id;
+
+        if (!appointmentId) {
+            return;
+        }
+
+        this.isLoading = true;
+
+        try {
+
+            await completeAppointment({
+                appointmentId
+            });
+
+            this.showToast(
+                'Success',
+                'Appointment marked as completed.',
                 'success'
             );
 
