@@ -1,136 +1,192 @@
-import { LightningElement } from 'lwc';
+import { LightningElement, track } from 'lwc';
+
+import checkAvailability
+    from '@salesforce/apex/AppointmentController.checkAvailability';
+
+import bookAppointment
+    from '@salesforce/apex/AppointmentController.bookAppointment';
+
 import { ShowToastEvent } from 'lightning/platformShowToastEvent';
-import { NavigationMixin } from 'lightning/navigation';
-// Import Apex methods so this LWC can call AppointmentConflictService.
-import checkConflicts from '@salesforce/apex/AppointmentConflictService.checkConflicts';
-import createAppointment from '@salesforce/apex/AppointmentConflictService.createAppointment';
 
-/**
- * Booking form shown on a Lightning page.
- * User picks a doctor, patient, and datetime, then either checks the slot
- * or saves. Save also re-checks conflicts in Apex before insert.
- */
-export default class AppointmentBooking extends NavigationMixin(LightningElement) {
-    // Ids returned by lightning-record-picker (Doctor__c / Patient__c).
-    doctorId;
-    patientId;
-    // Value from lightning-input type="datetime" (ISO datetime string).
-    appointmentDate;
-    notes;
-    // Text shown under the form after Check or a failed Save.
-    conflictMessage;
-    // True while Save is running so the user cannot double-click.
-    isBusy = false;
+export default class AppointmentBooking extends LightningElement {
 
-    // Store the selected doctor and clear any old conflict message.
+    @track doctorId;
+    @track patientId;
+    @track appointmentDate;
+    @track notes;
+
+    isAvailable = false;
+    isChecking = false;
+    isBooking = false;
+
+    // handleDoctorChange(event) {
+    //     this.doctorId = event.detail.recordId;
+    //     this.isAvailable = false;
+    // }
+
+    // handlePatientChange(event) {
+    //     this.patientId = event.detail.recordId;
+    //     this.isAvailable = false;
+    // }
+
     handleDoctorChange(event) {
-        this.doctorId = event.detail.recordId;
-        this.clearConflict();
+
+        this.doctorId =
+            event.detail.recordId ||
+            event.detail.value;
+
+        this.isAvailable = false;
+
     }
 
     handlePatientChange(event) {
-        this.patientId = event.detail.recordId;
-        this.clearConflict();
+
+        this.patientId =
+            event.detail.recordId ||
+            event.detail.value;
+
+        this.isAvailable = false;
+
     }
 
     handleDateChange(event) {
+
         this.appointmentDate = event.target.value;
-        this.clearConflict();
+
+        this.isAvailable = false;
     }
 
     handleNotesChange(event) {
-        this.notes = event.target.value;
+        this.notes = event.target.recordId;
     }
 
-    // Hide the previous availability/conflict text when the user changes inputs.
-    clearConflict() {
-        this.conflictMessage = undefined;
-    }
+    async handleCheckAvailability() {
 
-    // True when doctor, patient, and date are set and Save is not in progress.
-    get canSubmit() {
-        return this.doctorId && this.patientId && this.appointmentDate && !this.isBusy;
-    }
+        if (!this.doctorId ||
+            !this.patientId ||
+            !this.appointmentDate) {
 
-    // Used by the HTML disabled attribute on the Save button.
-    get cannotSubmit() {
-        return !(this.doctorId && this.patientId && this.appointmentDate) || this.isBusy;
-    }
+            this.showToast(
+                'Missing Information',
+                'Please select doctor, patient and appointment date.',
+                'warning'
+            );
 
-    // Read-only check: does NOT insert a record. Calls Apex checkConflicts.
-    async handleCheck() {
-        this.conflictMessage = undefined;
+            return;
+        }
+
+        this.isChecking = true;
+
         try {
-            const result = await checkConflicts({
+
+            const result = await checkAvailability({
                 doctorId: this.doctorId,
                 patientId: this.patientId,
-                appointmentDate: this.appointmentDate,
-                // null = this is a new booking, so do not exclude any existing Id.
-                excludeAppointmentId: null
+                appointmentDate: this.appointmentDate
             });
-            this.conflictMessage = result.message;
-            this.dispatchEvent(
-                new ShowToastEvent({
-                    title: result.hasConflict ? 'Conflict' : 'Available',
-                    message: result.message,
-                    variant: result.hasConflict ? 'error' : 'success'
-                })
+
+            this.isAvailable = !result.hasConflict;
+
+            this.showToast(
+                result.hasConflict
+                    ? 'Conflict'
+                    : 'Available',
+                result.message,
+                result.hasConflict
+                    ? 'error'
+                    : 'success'
             );
-        } catch (e) {
-            this.showError(e);
+
+        } catch (error) {
+
+            this.showToast(
+                'Error',
+                this.getErrorMessage(error),
+                'error'
+            );
+
+        } finally {
+
+            this.isChecking = false;
         }
     }
 
-    // Inserts the appointment. Apex checks conflicts again, then insert.
-    async handleSave() {
-        this.isBusy = true;
+    async handleBook() {
+
+        if (!this.isAvailable) {
+
+            this.showToast(
+                'Check Availability',
+                'Please check availability before booking.',
+                'warning'
+            );
+
+            return;
+        }
+
+        this.isBooking = true;
+
         try {
-            const id = await createAppointment({
+
+            const appointmentId = await bookAppointment({
                 doctorId: this.doctorId,
                 patientId: this.patientId,
                 appointmentDate: this.appointmentDate,
                 notes: this.notes
             });
-            this.dispatchEvent(
-                new ShowToastEvent({
-                    title: 'Appointment created',
-                    message: 'Record saved successfully.',
-                    variant: 'success'
-                })
+
+            this.showToast(
+                'Success',
+                'Appointment booked successfully.',
+                'success'
             );
-            // Open the new Appointment record page after a successful save.
-            this[NavigationMixin.Navigate]({
-                type: 'standard__recordPage',
-                attributes: {
-                    recordId: id,
-                    objectApiName: 'Appointment__c',
-                    actionName: 'view'
-                }
-            });
-        } catch (e) {
-            // Apex throws AuraHandledException when the slot is already taken.
-            this.conflictMessage = this.reduceError(e);
-            this.showError(e);
+
+            this.resetForm();
+
+            this.dispatchEvent(
+                new CustomEvent('appointmentcreated')
+            );
+
+        } catch (error) {
+
+            this.showToast(
+                'Booking Failed',
+                this.getErrorMessage(error),
+                'error'
+            );
+
         } finally {
-            this.isBusy = false;
+
+            this.isBooking = false;
         }
     }
 
-    showError(e) {
+    resetForm() {
+
+        this.doctorId = null;
+        this.patientId = null;
+        this.appointmentDate = null;
+        this.notes = null;
+        this.isAvailable = false;
+    }
+
+    getErrorMessage(error) {
+
+        if (error?.body?.message) {
+            return error.body.message;
+        }
+
+        return 'An unexpected error occurred.';
+    }
+
+    showToast(title, message, variant) {
+
         this.dispatchEvent(
             new ShowToastEvent({
-                title: 'Error',
-                message: this.reduceError(e),
-                variant: 'error'
+                title,
+                message,
+                variant
             })
         );
-    }
-
-    // Apex errors usually live on e.body.message; fall back to e.message.
-    reduceError(e) {
-        if (e?.body?.message) {
-            return e.body.message;
-        }
-        return e?.message || 'Unknown error';
     }
 }

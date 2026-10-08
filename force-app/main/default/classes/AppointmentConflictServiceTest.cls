@@ -1,82 +1,265 @@
-/**
- * Unit tests for appointment overlap logic.
- * @IsTest means Salesforce treats this as a test class (not production logic).
- * Data created here is not saved to your real org after the test finishes.
- */
 @IsTest
 private class AppointmentConflictServiceTest {
-    /**
-     * Runs once before each test method in this class.
-     * Creates one doctor, two patients, and a 10:00 appointment for Patient One.
-     */
-    @TestSetup
-    static void setup() {
-        Doctor__c doc = new Doctor__c(Name = 'Dr Test');
-        insert doc;
-        Patient__c pat1 = new Patient__c(Name = 'Patient One');
-        Patient__c pat2 = new Patient__c(Name = 'Patient Two');
-        insert new List<Patient__c>{ pat1, pat2 };
 
-        insert new Appointment__c(
-            Doctor__c = doc.Id,
-            Patient__c = pat1.Id,
-            Appointment_Date__c = Datetime.newInstance(2026, 10, 6, 10, 0, 0),
-            Status__c = 'Scheduled'
+    private static Doctor__c createDoctor() {
+
+        Doctor__c doctor = new Doctor__c(
+            Name = 'Dr. Test Doctor'
+        );
+
+        insert doctor;
+
+        return doctor;
+    }
+
+
+    private static Patient__c createPatient(
+        String name
+    ) {
+
+        Patient__c patient = new Patient__c(
+            Name = name
+        );
+
+        insert patient;
+
+        return patient;
+    }
+
+
+    @IsTest
+    static void testNoConflict() {
+
+        Doctor__c doctor = createDoctor();
+        Patient__c patient = createPatient('John Test');
+
+        Datetime appointmentTime =
+            Datetime.newInstance(
+                2026,
+                10,
+                10,
+                10,
+                0,
+                0
+            );
+
+        Test.startTest();
+
+        AppointmentConflictService.ConflictResult result =
+            AppointmentConflictService.checkConflicts(
+                doctor.Id,
+                patient.Id,
+                appointmentTime,
+                null
+            );
+
+        Test.stopTest();
+
+        System.assertEquals(
+            false,
+            result.hasConflict
+        );
+
+        System.assertEquals(
+            'Slot is available.',
+            result.message
         );
     }
 
-    // Same doctor at 10:15 overlaps the 10:00–10:30 slot, even for a different patient.
+
     @IsTest
-    static void overlappingDoctorIsConflict() {
-        Doctor__c doc = [SELECT Id FROM Doctor__c LIMIT 1];
-        Patient__c other = [SELECT Id FROM Patient__c WHERE Name = 'Patient Two'];
+    static void testDoctorConflict() {
+
+        Doctor__c doctor = createDoctor();
+
+        Patient__c patient1 =
+            createPatient('Patient One');
+
+        Patient__c patient2 =
+            createPatient('Patient Two');
+
+        Datetime existingTime =
+            Datetime.newInstance(
+                2026,
+                10,
+                10,
+                10,
+                0,
+                0
+            );
+
+        insert new Appointment__c(
+            Doctor__c = doctor.Id,
+            Patient__c = patient1.Id,
+            Appointment_Date__c = existingTime,
+            Status__c = 'Scheduled'
+        );
+
+        Datetime conflictingTime =
+            existingTime.addMinutes(15);
 
         Test.startTest();
+
         AppointmentConflictService.ConflictResult result =
             AppointmentConflictService.checkConflicts(
-                doc.Id,
-                other.Id,
-                Datetime.newInstance(2026, 10, 6, 10, 15, 0),
+                doctor.Id,
+                patient2.Id,
+                conflictingTime,
                 null
             );
+
         Test.stopTest();
 
-        System.assertEquals(true, result.hasConflict);
+        System.assertEquals(
+            true,
+            result.hasConflict
+        );
+
+        System.assert(
+            result.message.contains('doctor')
+        );
     }
 
-    // 10:30 starts exactly when the 10:00 slot ends, so it is allowed.
+
     @IsTest
-    static void backToBackIsAllowed() {
-        Doctor__c doc = [SELECT Id FROM Doctor__c LIMIT 1];
-        Patient__c other = [SELECT Id FROM Patient__c WHERE Name = 'Patient Two'];
+    static void testPatientConflict() {
+
+        Doctor__c doctor1 = createDoctor();
+        Doctor__c doctor2 = createDoctor();
+
+        Patient__c patient =
+            createPatient('Patient One');
+
+        Datetime existingTime =
+            Datetime.newInstance(
+                2026,
+                10,
+                10,
+                10,
+                0,
+                0
+            );
+
+        insert new Appointment__c(
+            Doctor__c = doctor1.Id,
+            Patient__c = patient.Id,
+            Appointment_Date__c = existingTime,
+            Status__c = 'Scheduled'
+        );
+
+        Test.startTest();
 
         AppointmentConflictService.ConflictResult result =
             AppointmentConflictService.checkConflicts(
-                doc.Id,
-                other.Id,
-                Datetime.newInstance(2026, 10, 6, 10, 30, 0),
+                doctor2.Id,
+                patient.Id,
+                existingTime.addMinutes(15),
                 null
             );
 
-        System.assertEquals(false, result.hasConflict);
+        Test.stopTest();
+
+        System.assertEquals(
+            true,
+            result.hasConflict
+        );
+
+        System.assert(
+            result.message.contains('patient')
+        );
     }
 
-    // Inserting a conflicting row through DML should be blocked by the trigger.
+
     @IsTest
-    static void triggerBlocksInsert() {
-        Doctor__c doc = [SELECT Id FROM Doctor__c LIMIT 1];
-        Patient__c other = [SELECT Id FROM Patient__c WHERE Name = 'Patient Two'];
-        Boolean blocked = false;
-        try {
-            insert new Appointment__c(
-                Doctor__c = doc.Id,
-                Patient__c = other.Id,
-                Appointment_Date__c = Datetime.newInstance(2026, 10, 6, 10, 0, 0),
-                Status__c = 'Scheduled'
+    static void testBackToBackAppointmentAllowed() {
+
+        Doctor__c doctor = createDoctor();
+
+        Patient__c patient1 =
+            createPatient('Patient One');
+
+        Patient__c patient2 =
+            createPatient('Patient Two');
+
+        Datetime existingTime =
+            Datetime.newInstance(
+                2026,
+                10,
+                10,
+                10,
+                0,
+                0
             );
-        } catch (DmlException e) {
-            blocked = e.getMessage().contains('Conflict');
-        }
-        System.assertEquals(true, blocked);
+
+        insert new Appointment__c(
+            Doctor__c = doctor.Id,
+            Patient__c = patient1.Id,
+            Appointment_Date__c = existingTime,
+            Status__c = 'Scheduled'
+        );
+
+        Test.startTest();
+
+        AppointmentConflictService.ConflictResult result =
+            AppointmentConflictService.checkConflicts(
+                doctor.Id,
+                patient2.Id,
+                existingTime.addMinutes(30),
+                null
+            );
+
+        Test.stopTest();
+
+        System.assertEquals(
+            false,
+            result.hasConflict
+        );
+    }
+
+
+    @IsTest
+    static void testCancelledAppointmentIgnored() {
+
+        Doctor__c doctor = createDoctor();
+
+        Patient__c patient1 =
+            createPatient('Patient One');
+
+        Patient__c patient2 =
+            createPatient('Patient Two');
+
+        Datetime appointmentTime =
+            Datetime.newInstance(
+                2026,
+                10,
+                10,
+                10,
+                0,
+                0
+            );
+
+        insert new Appointment__c(
+            Doctor__c = doctor.Id,
+            Patient__c = patient1.Id,
+            Appointment_Date__c = appointmentTime,
+            Status__c = 'Cancelled'
+        );
+
+        Test.startTest();
+
+        AppointmentConflictService.ConflictResult result =
+            AppointmentConflictService.checkConflicts(
+                doctor.Id,
+                patient2.Id,
+                appointmentTime,
+                null
+            );
+
+        Test.stopTest();
+
+        System.assertEquals(
+            false,
+            result.hasConflict
+        );
     }
 }

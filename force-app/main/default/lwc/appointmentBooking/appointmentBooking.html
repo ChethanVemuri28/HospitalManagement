@@ -1,52 +1,84 @@
 <template>
-    <lightning-card title="Book Appointment" icon-name="standard:event">
+
+    <lightning-card title="Book Appointment">
+
         <div class="slds-p-around_medium">
-            <lightning-record-picker
-                label="Doctor"
-                object-api-name="Doctor__c"
-                placeholder="Search doctors"
-                onchange={handleDoctorChange}>
-            </lightning-record-picker>
 
             <lightning-record-picker
                 label="Patient"
+                placeholder="Search Patient..."
                 object-api-name="Patient__c"
-                placeholder="Search patients"
                 onchange={handlePatientChange}>
             </lightning-record-picker>
 
-            <lightning-input
-                type="datetime"
-                label="Appointment Date"
-                value={appointmentDate}
-                onchange={handleDateChange}
-                required>
-            </lightning-input>
+            <div class="slds-m-top_medium">
 
-            <lightning-textarea
-                label="Notes"
-                value={notes}
-                onchange={handleNotesChange}>
-            </lightning-textarea>
+                <lightning-record-picker
+                    label="Doctor"
+                    placeholder="Search Doctor..."
+                    object-api-name="Doctor__c"
+                    onchange={handleDoctorChange}>
+                </lightning-record-picker>
 
-            <template if:true={conflictMessage}>
-                <div class="slds-m-top_small slds-text-color_error">{conflictMessage}</div>
-            </template>
+            </div>
 
             <div class="slds-m-top_medium">
-                <lightning-button
-                    label="Check availability"
-                    onclick={handleCheck}
-                    disabled={isBusy}>
-                </lightning-button>
-                <lightning-button
-                    variant="brand"
-                    label="Save appointment"
-                    onclick={handleSave}
-                    disabled={cannotSubmit}
-                    class="slds-m-left_small">
-                </lightning-button>
+
+                <!-- <lightning-input
+                    type="datetime"
+                    label="Appointment Date & Time"
+                    value={appointmentDate}
+                    onchange={handleDateChange}>
+                </lightning-input> -->
+                <lightning-input
+                    type="datetime"
+                    label="Appointment Date & Time"
+                    value={appointmentDate}
+                    onchange={handleDateChange}
+                    required>
+                </lightning-input>
+
             </div>
+
+            <div class="slds-m-top_medium">
+
+                <lightning-textarea
+                    label="Notes"
+                    value={notes}
+                    onchange={handleNotesChange}>
+                </lightning-textarea>
+
+            </div>
+
+            <div class="slds-m-top_medium">
+
+                <lightning-button
+                    label="Check Availability"
+                    variant="neutral"
+                    onclick={handleCheckAvailability}
+                    disabled={isChecking}>
+                </lightning-button>
+
+                <lightning-button
+                    class="slds-m-left_small"
+                    label="Book Appointment"
+                    variant="brand"
+                    onclick={handleBook}
+                    disabled={isBooking}>
+                </lightning-button>
+
+            </div>
+
+            <template if:true={isAvailable}>
+
+                <div class="slds-m-top_medium slds-text-color_success">
+                    ✓ Appointment slot is available.
+                </div>
+
+            </template>
+
         </div>
+
     </lightning-card>
+
 </template>

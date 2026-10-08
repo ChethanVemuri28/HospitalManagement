@@ -1,0 +1,140 @@
+<template>
+
+    <lightning-card title="Appointment Management">
+
+        <div class="slds-p-around_medium">
+
+            <div class="slds-grid slds-gutters">
+
+                <div class="slds-col">
+
+                    <lightning-input
+                        type="search"
+                        label="Search"
+                        placeholder="Search patient or doctor..."
+                        value={searchTerm}
+                        onchange={handleSearch}>
+                    </lightning-input>
+
+                </div>
+
+                <div class="slds-col">
+
+                    <lightning-combobox
+                        label="Status"
+                        value={statusFilter}
+                        options={statusOptions}
+                        onchange={handleStatusChange}>
+                    </lightning-combobox>
+
+                </div>
+
+            </div>
+
+
+            <div class="slds-m-top_medium">
+
+                <template
+                    if:true={filteredAppointments.length}>
+
+                    <div class="slds-scrollable_x">
+
+                        <table
+                            class="slds-table
+                                   slds-table_cell-buffer
+                                   slds-table_bordered
+                                   slds-table_striped">
+
+                            <thead>
+
+                                <tr>
+
+                                    <th>Appointment</th>
+                                    <th>Patient</th>
+                                    <th>Doctor</th>
+                                    <th>Date & Time</th>
+                                    <th>Status</th>
+                                    <th>Action</th>
+
+                                </tr>
+
+                            </thead>
+
+                            <tbody>
+
+                                <template
+                                    for:each={filteredAppointments}
+                                    for:item="appointment">
+
+                                    <tr
+                                        key={appointment.Id}>
+
+                                        <td>
+                                            {appointment.Name}
+                                        </td>
+
+                                        <td>
+                                            {appointment.Patient__r.Name}
+                                        </td>
+
+                                        <td>
+                                            {appointment.Doctor__r.Name}
+                                        </td>
+
+                                        <td>
+                                            {appointment.Appointment_Date__c}
+                                        </td>
+
+                                        <td>
+                                            {appointment.Status__c}
+                                        </td>
+
+                                        <td>
+
+                                            <template
+                                                if:false={appointment.isCancelled}>
+
+                                                <lightning-button
+                                                    label="Cancel"
+                                                    variant="destructive-text"
+                                                    data-id={appointment.Id}
+                                                    onclick={handleCancel}>
+                                                </lightning-button>
+
+                                            </template>
+
+                                        </td>
+
+                                    </tr>
+
+                                </template>
+
+                            </tbody>
+
+                        </table>
+
+                    </div>
+
+                </template>
+
+
+                <template
+                    if:false={filteredAppointments.length}>
+
+                    <div
+                        class="slds-align_absolute-center
+                               slds-p-around_large">
+
+                        No appointments found.
+
+                    </div>
+
+                </template>
+
+            </div>
+
+        </div>
+
+    </lightning-card>
+
+</template>
