@@ -10,6 +10,16 @@ public with sharing class AppointmentService {
         String notes
     ) {
 
+        DoctorAvailabilityService.AvailabilityResult availability =
+            DoctorAvailabilityService.checkAvailability(
+                doctorId,
+                appointmentDate
+            );
+
+        if (!availability.isAvailable) {
+            throw new AppointmentException(availability.message);
+        }
+
         AppointmentConflictService.ConflictResult check =
             AppointmentConflictService.checkConflicts(
                 doctorId,
