@@ -73,4 +73,14 @@
         <modifyAllRecords>true</modifyAllRecords>
     </objectPermissions>
 
+        <objectPermissions>
+        <object>Doctor_Availability__c</object>
+        <allowRead>true</allowRead>
+        <allowCreate>true</allowCreate>
+        <allowEdit>true</allowEdit>
+        <allowDelete>true</allowDelete>
+        <viewAllRecords>true</viewAllRecords>
+        <modifyAllRecords>true</modifyAllRecords>
+    </objectPermissions>
+
 </PermissionSet>

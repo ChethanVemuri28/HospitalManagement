@@ -27,20 +27,40 @@ public with sharing class AppointmentController {
 
 
     @AuraEnabled(cacheable=true)
-    public static AppointmentConflictService.ConflictResult
-        checkAvailability(
-            Id doctorId,
-            Id patientId,
-            Datetime appointmentDate
-        ) {
+public static AppointmentConflictService.ConflictResult
+    checkAvailability(
+        Id doctorId,
+        Id patientId,
+        Datetime appointmentDate
+    ) {
 
-        return AppointmentConflictService.checkConflicts(
+    AppointmentConflictService.ConflictResult result =
+        new AppointmentConflictService.ConflictResult();
+
+    // First: check whether the doctor is working.
+    DoctorAvailabilityService.AvailabilityResult availability =
+        DoctorAvailabilityService.checkAvailability(
             doctorId,
-            patientId,
-            appointmentDate,
-            null
+            appointmentDate
         );
+
+    if (!availability.isAvailable) {
+        result.hasConflict = true;
+        result.message = availability.message;
+        result.conflictingAppointments =
+            new List<Appointment__c>();
+
+        return result;
     }
+
+    // Second: check existing appointment conflicts.
+    return AppointmentConflictService.checkConflicts(
+        doctorId,
+        patientId,
+        appointmentDate,
+        null
+    );
+}
 
 
     @AuraEnabled(cacheable=true)

@@ -2,8 +2,10 @@
 <CustomField xmlns="http://soap.sforce.com/2006/04/metadata">
     <fullName>Day_of_Week__c</fullName>
     <label>Day of Week</label>
-    <type>Picklist</type>
+    <type>MultiselectPicklist</type>
+    <visibleLines>7</visibleLines>
     <valueSet>
+    <restricted>true</restricted>
         <valueSetDefinition>
             <sorted>false</sorted>
             <value>

@@ -25,5 +25,6 @@
     <tabs>Department__c</tabs>
     <tabs>Prescription__c</tabs>
     <tabs>Payment__c</tabs>
+    <tabs>Doctor_Availability__c</tabs>
 
 </CustomApplication>
