@@ -882,7 +882,7 @@
         <tab>Appointment__c</tab>
         <visibility>DefaultOn</visibility>
     </tabVisibilities>
-    <tabVisibilities>
+    <!-- <tabVisibilities>
         <tab>Department__c</tab>
         <visibility>DefaultOn</visibility>
     </tabVisibilities>
@@ -893,7 +893,7 @@
     <tabVisibilities>
         <tab>Payment__c</tab>
         <visibility>DefaultOn</visibility>
-    </tabVisibilities>
+    </tabVisibilities> -->
     <tabVisibilities>
         <tab>Doctor_Availability__c</tab>
         <visibility>DefaultOn</visibility>

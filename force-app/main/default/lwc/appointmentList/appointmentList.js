@@ -13,6 +13,9 @@ import { ShowToastEvent } from 'lightning/platformShowToastEvent';
 
 import { refreshApex } from '@salesforce/apex';
 
+import rescheduleAppointment
+    from '@salesforce/apex/AppointmentController.rescheduleAppointment';
+
 export default class AppointmentList extends LightningElement {
 
     appointments = [];
@@ -24,6 +27,11 @@ export default class AppointmentList extends LightningElement {
     wiredAppointmentResult;
 
     isLoading = false;
+
+    showRescheduleForm = false;
+    selectedAppointmentId;
+    newAppointmentDate;
+    isRescheduling = false;
 
 
     @wire(getAppointments)
@@ -39,7 +47,19 @@ export default class AppointmentList extends LightningElement {
                 appointment => ({
                     ...appointment,
                     canTakeAction:
-                        appointment.Status__c !== 'Cancelled' && appointment.Status__c !== 'Completed' 
+                        appointment.Status__c !== 'Cancelled' && appointment.Status__c !== 'Completed', 
+                    
+                    formattedAppointmentDate: appointment.Appointment_Date__c
+                        ? new Intl.DateTimeFormat('en-IN', {
+                            timeZone: 'Asia/Kolkata',
+                            day: '2-digit',
+                            month: 'short',
+                            year: 'numeric',
+                            hour: '2-digit',
+                            minute: '2-digit',
+                            hour12: true
+                        }).format(new Date(appointment.Appointment_Date__c))
+                        : ''
             })
             );
             this.applyFilters();
@@ -225,5 +245,62 @@ export default class AppointmentList extends LightningElement {
                 variant
             })
         );
+    }
+
+    handleRescheduleClick(event) {
+        this.selectedAppointmentId =
+            event.currentTarget.dataset.id;
+
+        this.newAppointmentDate = null;
+        this.showRescheduleForm = true;
+    }
+
+    handleNewDateChange(event) {
+        this.newAppointmentDate = event.target.value;
+    }
+
+    handleRescheduleCancel() {
+        this.showRescheduleForm = false;
+        this.selectedAppointmentId = null;
+        this.newAppointmentDate = null;
+    }
+
+    async handleRescheduleSave() {
+        if (!this.newAppointmentDate) {
+            this.showToast(
+                'Missing Information',
+                'Please select a new appointment date and time.',
+                'warning'
+            );
+            return;
+        }
+
+        this.isRescheduling = true;
+
+        try {
+            await rescheduleAppointment({
+                appointmentId: this.selectedAppointmentId,
+                newAppointmentDate: this.newAppointmentDate
+            });
+
+            this.showToast(
+                'Success',
+                'Appointment rescheduled successfully.',
+                'success'
+            );
+
+            this.handleRescheduleCancel();
+
+            await refreshApex(this.wiredAppointmentResult);
+
+        } catch (error) {
+            this.showToast(
+                'Rescheduling Failed',
+                this.getErrorMessage(error),
+                'error'
+            );
+        } finally {
+            this.isRescheduling = false;
+        }
     }
 }

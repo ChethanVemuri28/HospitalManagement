@@ -82,7 +82,7 @@
                                         </td>
 
                                         <td>
-                                            {appointment.Appointment_Date__c}
+                                            {appointment.formattedAppointmentDate}
                                         </td>
 
                                         <td>
@@ -93,6 +93,12 @@
 
                                             <template lwc:if={appointment.canTakeAction}>
                                                 <div class="slds-m-left_auto">
+                                                    <lightning-button
+                                                        label="Reschedule"
+                                                        variant="neutral"
+                                                        data-id={appointment.Id}
+                                                        onclick={handleRescheduleClick}>
+                                                    </lightning-button>
                                                     <lightning-button
                                                         label="Cancel"
                                                         variant="destructive-text"
@@ -141,6 +147,57 @@
 
         </div>
 
+        <!-- Reschedule Appointment Modal -->
+        <template if:true={showRescheduleForm}>
+            <section
+                role="dialog"
+                tabindex="-1"
+                aria-modal="true"
+                class="slds-modal slds-fade-in-open">
+
+                <div class="slds-modal__container">
+
+                    <!-- Header -->
+                    <header class="slds-modal__header">
+                        <h2 class="slds-text-heading_medium">
+                            Reschedule Appointment
+                        </h2>
+                    </header>
+
+                    <!-- Body -->
+                    <div class="slds-modal__content slds-p-around_medium">
+                        <lightning-input
+                            type="datetime"
+                            label="New Appointment Date & Time"
+                            value={newAppointmentDate}
+                            onchange={handleNewDateChange}
+                            required>
+                        </lightning-input>
+                    </div>
+
+                    <!-- Footer -->
+                    <footer class="slds-modal__footer">
+                        <lightning-button
+                            label="Save Changes"
+                            variant="brand"
+                            onclick={handleRescheduleSave}
+                            disabled={isRescheduling}>
+                        </lightning-button>
+
+                        <lightning-button
+                            label="Close"
+                            variant="neutral"
+                            onclick={handleRescheduleCancel}
+                            disabled={isRescheduling}
+                            class="slds-m-left_small">
+                        </lightning-button>
+                    </footer>
+
+                </div>
+            </section>
+
+            <div class="slds-backdrop slds-backdrop_open"></div>
+        </template>
     </lightning-card>
 
 </template>

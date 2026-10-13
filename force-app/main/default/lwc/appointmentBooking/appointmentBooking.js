@@ -52,7 +52,6 @@ export default class AppointmentBooking extends LightningElement {
     handleDateChange(event) {
 
         this.appointmentDate = event.target.value;
-
         this.isAvailable = false;
     }
 

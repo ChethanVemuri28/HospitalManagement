@@ -102,4 +102,19 @@ public static AppointmentConflictService.ConflictResult
             appointmentId
         );  
     }
+
+    @AuraEnabled
+    public static void rescheduleAppointment(
+        Id appointmentId,
+        Datetime newAppointmentDate
+    ) {
+        try {
+            AppointmentService.rescheduleAppointment(
+                appointmentId,
+                newAppointmentDate
+            );
+        } catch (AppointmentService.AppointmentException e) {
+            throw new AuraHandledException(e.getMessage());
+        }
+    }
 }
